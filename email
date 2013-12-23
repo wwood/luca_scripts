@@ -1,0 +1,16 @@
+#!/bin/bash
+date=`date`
+username=`whoami`
+email=ace.admin@uq.edu.au
+if [[ $username == uq* ]] ; then email=$username@uq.edu.au
+else
+if [[ $username == s[0-9]* ]]
+then email=$username@student.uq.edu.au
+fi
+fi
+if [[ $@ = \-h* ]]
+then echo "usage: email"
+" prints the email address of the current user, or the administrator's email address if current user's email address cannot be determined"
+else
+echo $email
+fi
