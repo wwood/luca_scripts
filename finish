@@ -1,6 +1,7 @@
 echo `history |tail -n1` `date` >>~/command_finishes.txt
 
-echo "Subject: Your process has finished running.
+echo 'Subject: Your process has finished running.
 
 
-Finished process with exit status " $? ': ' `history |tail -n1` `date` |ssmtp `email`
+The process "'`history |tail -n1 | cut -d ";" -f 1 | cut -c 8-`'" finished running on the server' $HOSTNAME 'with the exit status' $? 'at' `date` |ssmtp `email`
+#Finished process with exit status ' $? ': ' `history |tail -n1 | cut -d ";" -f 1 | cut -c 8-` `date` |ssmtp `email`
