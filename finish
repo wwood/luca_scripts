@@ -1,7 +1,7 @@
 echo `history |tail -n1` `date` >>~/command_finishes.txt
 
-echo 'Subject: Your process has finished running.
+echo 'Subject: Your process '`history |tail -n1 | cut -d ";" -f 1 | cut -c 8- |cut -d" " -f1`' has finished running.
 
 
-The process "'`history |tail -n1 | cut -d ";" -f 1 | cut -c 8-`'" finished running on the server' $HOSTNAME 'in directory' $PWD 'at' `date` |ssmtp `email`
-#Finished process with exit status ' $? ': ' `history |tail -n1 | cut -d ";" -f 1 | cut -c 8-` `date` |ssmtp `email`
+The process on the server' $HOSTNAME 'in directory' $PWD 'at' `date` "'`history |tail -n1 |cut -d ";" -f 1 | cut -c 8-`'" 'finished running' |ssmtp `email`
+
