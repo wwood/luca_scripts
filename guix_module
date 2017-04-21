@@ -137,7 +137,7 @@ if __name__ == '__main__':
     
     # ensure 'guix_profile' doesn't exist as a folder in that directory
     # ensure that the modulefile does not already exist
-    if os.path.exists(sw_folder):
+    if os.path.exists(sw_folder) and os.listdir(sw_folder) != []:
         raise Exception("A folder already exists at %s" % sw_folder)
     if not os.path.isdir(sw_folder):
         os.makedirs(sw_folder)
@@ -147,7 +147,7 @@ if __name__ == '__main__':
         os.makedirs(modulefile_folder)
     
     # run guix package -i to do the actual installation to the profile
-    cmd = "%s package -p '%s' -i %s" % (guix_exe, guix_profile_path, guix_package_name)
+    cmd = "%s package --fallback -p '%s' -i %s" % (guix_exe, guix_profile_path, guix_package_name)
     logging.info("Running cmd: %s" % cmd)
     subprocess.check_call(cmd, shell=True)
     print "Do not worry about above notices that 'The following environment variable definitions may be needed'"
