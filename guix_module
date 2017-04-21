@@ -30,10 +30,10 @@ class GuixInfo:
         cmd = "%s package --show=%s" % (guix_exe, guix_package_name)
         logging.info("Running cmd: %s" % cmd)
         output = subprocess.check_output(cmd, shell=True)
-        
+
         if output=='':
             raise Exception("Unfortunately it appears there is no '%s' package in guix" % guix_package_name)
-        
+
         infos = {}
         r = re.compile("(.+?): (.*)")
         last_key = None
@@ -55,19 +55,19 @@ class GuixInfo:
                     infos[last_key] = value
                 else:
                     raise Exception("Badly parsed info line: %s" % l)
-                
+
         # these throw errors if they don't exist, so don't need to check
         self.name = infos['name']
         self.version = infos['version']
         self.synopsis = infos['synopsis']
         self.description = infos['description']
-        
+
 class SearchPaths:
     def __init__(self, guix_profile_path):
         cmd = "%s package -p '%s' --search-paths" % (guix_exe, guix_profile_path)
         logging.info("Running cmd: %s" % cmd)
         output = subprocess.check_output(cmd, shell=True)
-        
+
         self.search_paths = {}
         r = re.compile("export (.+?)=(.+)")
         for l in output.split("\n"):
@@ -79,7 +79,7 @@ class SearchPaths:
                 self.search_paths[last_key] = value
             else:
                 raise Exception("Badly parsed --search-paths line: %s" % l)
-        
+
 
 if __name__ == '__main__':
     external_package_path = '/srv/db/guix/external'
@@ -99,11 +99,11 @@ if __name__ == '__main__':
         metavar='path',
         help="how to run the guix executable e.g. 'guix' or '/srv/home/uqbwoodc/git/guix/pre-inst-env guix",
         default="guix")
-                        
+
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
-    
+
     guix_package_name = args.install
     if args.guix_package_name:
         guix_package_name = args.guix_package_name
@@ -118,11 +118,11 @@ if __name__ == '__main__':
                           ':'.join(['%s/%s' % (external_package_path, d) for d in external_repos])+' '
         guix_exe = external_prefix + args.guix_binary
         logging.info("Setting guix binary program to '%s'" % guix_exe)
-    
+
     # make sure that the guix package exists, and gather info on it at the same time
     # using guix package --show=guix_package_name
     guix_info = GuixInfo(guix_package_name, guix_exe)
-    
+
     # create or make sure that the directory exists on the server
     # use package_name/version
     if args.test_directory:
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     guix_profile_path = os.path.join(sw_folder, 'guix_package')
     module_file = os.path.join(modulefile_folder, guix_info.version)
     logging.info("Modulefile to be created at %s" % module_file)
-    
+
     # ensure 'guix_profile' doesn't exist as a folder in that directory
     # ensure that the modulefile does not already exist
     if os.path.exists(sw_folder) and os.listdir(sw_folder) != []:
@@ -145,22 +145,22 @@ if __name__ == '__main__':
         raise Exception("A modulefile already exists at %s" % module_file)
     if not os.path.isdir(modulefile_folder):
         os.makedirs(modulefile_folder)
-    
+
     # run guix package -i to do the actual installation to the profile
     cmd = "%s package --fallback -p '%s' -i %s" % (guix_exe, guix_profile_path, guix_package_name)
     logging.info("Running cmd: %s" % cmd)
     subprocess.check_call(cmd, shell=True)
     print "Do not worry about above notices that 'The following environment variable definitions may be needed'"
-    
+
     # run guix package --search-paths to get the paths
     paths = SearchPaths(guix_profile_path)
-    
+
     # write info and etc to the module file,
     with open(module_file,'w') as mfile:
         mfile.write("#%Module######################################################################\n")
         mfile.write("#\n")
         mfile.write("#        %s modulefile\n" % args.install)
-        mfile.write("#        generated from guix package %s/%s\n" % 
+        mfile.write("#        generated from guix package %s/%s\n" %
                     (guix_info.name, guix_info.version))
         mfile.write("#\n")
         mfile.write("proc ModulesHelp { } {\n")
@@ -169,7 +169,5 @@ if __name__ == '__main__':
         mfile.write("\n")
         for env_name, env_value in paths.search_paths.iteritems():
             mfile.write("prepend-path %s %s\n" % (env_name, env_value))
-            
+
     logging.info("Installation and modulefile creation appears to have completed without any problems.")
-                    
-        
