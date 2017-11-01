@@ -26,8 +26,8 @@ import re
 import os, os.path
 
 class GuixInfo:
-    def __init__(self, guix_package_name, guix_exe):
-        cmd = "%s package --show=%s" % (guix_exe, guix_package_name)
+    def __init__(self, guix_package_names, guix_exe):
+        cmd = "%s package --show=%s" % (guix_exe, guix_package_names[0])
         logging.info("Running cmd: %s" % cmd)
         output = subprocess.check_output(cmd, shell=True)
 
@@ -62,6 +62,7 @@ class GuixInfo:
         self.synopsis = infos['synopsis']
         self.description = infos['description']
 
+
 class SearchPaths:
     def __init__(self, guix_profile_path):
         cmd = "%s package -p '%s' --search-paths" % (guix_exe, guix_profile_path)
@@ -85,7 +86,7 @@ if __name__ == '__main__':
     external_package_path = '/srv/db/guix/external'
     parser = argparse.ArgumentParser()
     parser.add_argument('-i','--install', metavar='package_name', help='package to be installed', required=True)
-    parser.add_argument('--guix_package_name', metavar='name', help='the name of the package in guix (default: the one specified with --install)')
+    parser.add_argument('--guix_package_names', nargs='+', metavar='name', help='the name of the package(s) in guix (default: the one specified with --install)')
     parser.add_argument('-t','--test_directory', metavar='path', help='run guix, but output to this directory for testing (default: unused)')
     parser.add_argument('--sw_directory', metavar='path', help='path to base directory of where to install the guix profile', default='/srv/sw')
     parser.add_argument('--module_directory', metavar='path',
@@ -104,9 +105,9 @@ if __name__ == '__main__':
 
     logging.basicConfig(level=logging.INFO)
 
-    guix_package_name = args.install
-    if args.guix_package_name:
-        guix_package_name = args.guix_package_name
+    guix_package_names = [args.install]
+    if args.guix_package_names:
+        guix_package_names = args.guix_package_names
     guix_exe = args.guix_binary
     logging.info("Using guix binary: '%s'" % guix_exe)
 
@@ -121,7 +122,7 @@ if __name__ == '__main__':
 
     # make sure that the guix package exists, and gather info on it at the same time
     # using guix package --show=guix_package_name
-    guix_info = GuixInfo(guix_package_name, guix_exe)
+    guix_info = GuixInfo(guix_package_names, guix_exe)
 
     # create or make sure that the directory exists on the server
     # use package_name/version
@@ -147,7 +148,7 @@ if __name__ == '__main__':
         os.makedirs(modulefile_folder)
 
     # run guix package -i to do the actual installation to the profile
-    cmd = "%s package --fallback -p '%s' -i %s" % (guix_exe, guix_profile_path, guix_package_name)
+    cmd = "%s package --fallback -p '%s' -i %s" % (guix_exe, guix_profile_path, ' '.join(guix_package_names))
     logging.info("Running cmd: %s" % cmd)
     subprocess.check_call(cmd, shell=True)
     print "Do not worry about above notices that 'The following environment variable definitions may be needed'"
