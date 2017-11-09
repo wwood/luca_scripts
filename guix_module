@@ -108,6 +108,7 @@ if __name__ == '__main__':
     guix_package_names = [args.install]
     if args.guix_package_names:
         guix_package_names = args.guix_package_names
+    guix_package_names.append('glibc-locales')
     guix_exe = args.guix_binary
     logging.info("Using guix binary: '%s'" % guix_exe)
 
@@ -170,5 +171,7 @@ if __name__ == '__main__':
         mfile.write("\n")
         for env_name, env_value in paths.search_paths.iteritems():
             mfile.write("prepend-path %s %s\n" % (env_name, env_value))
+        # Add locale for all packages
+        mfile.write("prepend-path GUIX_LOCPATH %s/lib/locale\n" % guix_profile_path)
 
     logging.info("Installation and modulefile creation appears to have completed without any problems.")
