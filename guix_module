@@ -98,7 +98,7 @@ class DefaultModuleVersionFile:
 
     @staticmethod
     def get_default_version(modulename):
-        stdout = subprocess.check_output("module show diamond 2>&1", shell=True)
+        stdout = subprocess.check_output("module show '%s' 2>&1" % modulename, shell=True)
         version_s = stdout.split("\n")[1].split(':')[0].split("/")[-1]
         return version_s
 
