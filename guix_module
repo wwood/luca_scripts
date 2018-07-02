@@ -121,6 +121,10 @@ if __name__ == '__main__':
         help="how to run the guix executable e.g. 'guix' or '/srv/home/uqbwoodc/git/guix/pre-inst-env guix",
         default="guix")
     parser.add_argument('--debug', help='output debug information', action="store_true")
+    parser.add_argument(
+        '--non_default_version',
+        help='Do not ensure this install becomes the default for module load',
+        action='store_true')
 
     args = parser.parse_args()
 
@@ -201,19 +205,22 @@ if __name__ == '__main__':
 
 
     # Make sure that the correct version is being loaded
-    modulename = args.install
-    moduleversion = guix_info.version
-    current_version = DefaultModuleVersionFile.get_default_version(modulename)
-    logging.debug("Before messing with .version files, default version is %s" % current_version)
-    if current_version != moduleversion:
-        logging.debug("Versions differ (found %s as default), need to specify a .version file" % current_version)
-        DefaultModuleVersionFile().generate_dotversion(modulefile_folder, moduleversion)
-        current_version = DefaultModuleVersionFile.get_default_version(modulename)
-        if current_version != moduleversion:
-            raise Exception("Unexpectedly generating a .version file did not result in the expected version being loaded")
-        else:
-            logging.info("After creating the .version file, the expected version (%s) now loads by default." % current_version)
+    if args.non_default_version:
+        logging.info("Not checking this module is loaded by default")
     else:
-        logging.debug("No .version file required")
+        modulename = args.install
+        moduleversion = guix_info.version
+        current_version = DefaultModuleVersionFile.get_default_version(modulename)
+        logging.debug("Before messing with .version files, default version is %s" % current_version)
+        if current_version != moduleversion:
+            logging.debug("Versions differ (found %s as default), need to specify a .version file" % current_version)
+            DefaultModuleVersionFile().generate_dotversion(modulefile_folder, moduleversion)
+            current_version = DefaultModuleVersionFile.get_default_version(modulename)
+            if current_version != moduleversion:
+                raise Exception("Unexpectedly generating a .version file did not result in the expected version being loaded")
+            else:
+                logging.info("After creating the .version file, the expected version (%s) now loads by default." % current_version)
+        else:
+            logging.debug("No .version file required")
 
-    logging.info("Installation and modulefile creation appears to have completed without any problems.")
+        logging.info("Installation and modulefile creation appears to have completed without any problems.")
