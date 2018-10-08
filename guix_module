@@ -107,6 +107,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i','--install', metavar='package_name', help='package to be installed', required=True)
     parser.add_argument('--guix_package_names', nargs='+', metavar='name', help='the name of the package(s) in guix (default: the one specified with --install)')
+    parser.add_argument('--version', metavar='version', help='install the module as this version (default: the one specified in Guix)')
     parser.add_argument('-t','--test_directory', metavar='path', help='run guix, but output to this directory for testing (default: unused)')
     parser.add_argument('--sw_directory', metavar='path', help='path to base directory of where to install the guix profile', default='/srv/sw')
     parser.add_argument('--module_directory', metavar='path',
@@ -153,6 +154,11 @@ if __name__ == '__main__':
     # make sure that the guix package exists, and gather info on it at the same time
     # using guix package --show=guix_package_name
     guix_info = GuixInfo(guix_package_names, guix_exe)
+
+    # Set version number if specified
+    if args.version:
+        logging.info("Setting version as '{}'".format(args.version))
+        guix_info.version = args.version
 
     # create or make sure that the directory exists on the server
     # use package_name/version
