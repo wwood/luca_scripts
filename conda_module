@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+
+import logging
+import argparse
+import subprocess
+import sys, os
+
+class DefaultModuleVersionFile:
+    def generate_dotversion(self, modulefiles_directory, new_version):
+        dotversion_path = os.path.join(modulefiles_directory, '.version')
+        if os.path.exists(dotversion_path):
+            shutil.move(dotversion_path,
+                      "%s.backup_by_conda_module" % dotversion_path)
+        with open(dotversion_path, 'w') as f:
+            f.write("#%Module1.0\n")
+            f.write("set ModulesVersion %s\n" % new_version)
+
+    @staticmethod
+    def get_default_version(modulename):
+        stdout = subprocess.check_output("bash -c \"module show '%s' 2>&1\"" % modulename, shell=True)
+        version_s = stdout.decode().split("\n")[1].split(':')[0].split("/")[-1]
+        return version_s
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', help='output debug information',
+                               action="store_true")
+    parser.add_argument('--quiet', help='only output errors',
+                               action="store_true")
+
+    parser.add_argument('-i','--conda_environment', help='name of conda environment to modularise',
+                               required=True)
+    parser.add_argument('-m','--module_name', help='name of module for software being installed',
+                               required=True)
+    parser.add_argument('-v','--module_version', help='version of module being installed',
+                               required=True)
+    parser.add_argument(
+        '--non_default_version',
+        help='Do not ensure this install becomes the default for module load',
+        action='store_true')
+    args = parser.parse_args()
+
+    modulefile_path = '/srv/modulefiles'
+
+
+    if args.debug:
+        loglevel = logging.DEBUG
+    elif args.quiet:
+        loglevel = logging.ERROR
+    else:
+        loglevel = logging.INFO
+    logging.basicConfig(
+        level=loglevel,
+        format='%(asctime)s %(levelname)s: %(message)s',
+        datefmt='%m/%d/%Y %I:%M:%S %p')
+
+    envs = subprocess.check_output("conda info -e", shell=True)
+    available_modules = set()
+    for line in envs.decode().splitlines():
+        splits = line.split(' ')
+        if len(splits)>1 and len(splits[0])>1 and splits[0][0] != '#':
+            mod = splits[0]
+            if mod in available_modules:
+                raise Exception("Error parsing output of 'conda info -e'")
+            available_modules.add(mod)
+
+    logging.info("Found {} conda environments listed".format(len(available_modules)))
+
+    if args.conda_environment not in available_modules:
+        raise Exception("Could not find conda environment called '{}'".format(args.conda_environment))
+
+    modulefile_folder = os.path.join(modulefile_path, args.module_name)
+    modulefile = os.path.join(modulefile_folder, args.module_version)
+    logging.info("Writing modulefile to {} ..".format(modulefile))
+    if os.path.exists(modulefile):
+        raise Exception("A modulefile already exists there, not overwriting.")
+
+    if not os.path.exists(modulefile_folder):
+        logging.info("Creating directory {}".format(modulefile_folder))
+        os.mkdir(modulefile_folder)
+
+    with open(modulefile,'w') as f:
+        f.write("""#%Module######################################################################
+##
+##      """+args.module_name+""" modulefile
+##
+set no_miniconda [is-loaded miniconda3]
+
+if {! $no_miniconda} {
+   puts stderr "Please load the module miniconda3 before loading this module" 
+   exit
+}
+if { [module-info mode load] || [module-info mode switch2] } {
+    puts stdout "conda activate """+args.conda_environment+""";"
+  } elseif { [module-info mode remove] && ![module-info mode switch3] } {
+    puts stdout "conda deactivate;"
+  }
+""")
+
+    logging.info("Successfullly wrote modulefile {}".format(modulefile))
+
+
+
+    # Make sure that the correct version is being loaded
+    if args.non_default_version:
+        logging.info("Not checking this module is loaded by default, as you say")
+    else:
+        modulename = args.module_name
+        moduleversion = args.module_version
+        current_version = DefaultModuleVersionFile.get_default_version(modulename)
+        logging.debug("Before messing with .version files, default version is %s" % current_version)
+        if current_version != moduleversion:
+            logging.debug("Versions differ (found %s as default), need to specify a .version file" % current_version)
+            DefaultModuleVersionFile().generate_dotversion(modulefile_folder, moduleversion)
+            current_version = DefaultModuleVersionFile.get_default_version(modulename)
+            if current_version != moduleversion:
+                raise Exception("Unexpectedly generating a .version file did not result in the expected version being loaded")
+            else:
+                logging.info("After creating the .version file, the expected version (%s) now loads by default." % current_version)
+        else:
+            logging.debug("No .version file required")
+
+        logging.info("Installation and modulefile creation appears to have completed without any problems.")
